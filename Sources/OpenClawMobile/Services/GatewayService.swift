@@ -175,9 +175,10 @@ final class GatewayService: ObservableObject {
 
         let msg = ChatMessage(
             id: payload["id"] as? String ?? UUID().uuidString,
-            role: role == "user" ? .user : .assistant,
+            role: role,
             content: content,
-            timestamp: Date()
+            timestamp: ISO8601DateFormatter().string(from: Date()),
+            sessionKey: nil
         )
         messages.append(msg)
     }
@@ -191,12 +192,7 @@ final class GatewayService: ObservableObject {
         }
 
         // Add optimistic user message
-        let userMsg = ChatMessage(
-            id: UUID().uuidString,
-            role: .user,
-            content: content,
-            timestamp: Date()
-        )
+        let userMsg = ChatMessage.userMessage(content)
         messages.append(userMsg)
 
         do {
@@ -247,17 +243,4 @@ enum GatewayError: Error, LocalizedError {
     }
 }
 
-struct GatewayStatus: Codable {
-    let agentName: String?
-    let version: String?
-    let uptime: Double?
-}
-
-struct ChatSession: Codable, Identifiable {
-    let key: String
-    let kind: String?
-    let channel: String?
-    let updatedAt: Double?
-
-    var id: String { key }
-}
+// ChatSession defined in Models/Message.swift

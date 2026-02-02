@@ -292,12 +292,16 @@ struct SettingsView: View {
 
         // Test Gateway
         if config.isConfigured {
-            let service = GatewayService(config: config)
-            if let status = await service.checkStatus() {
+            do {
+                let url = URL(string: config.gatewayURL.trimmingCharacters(in: .init(charactersIn: "/")) + "/api/status")!
+                var req = URLRequest(url: url)
+                req.setValue("Bearer \(config.gatewayToken)", forHTTPHeaderField: "Authorization")
+                let (data, _) = try await URLSession.shared.data(for: req)
+                let status = try JSONDecoder().decode(GatewayStatus.self, from: data)
                 gatewayStatus = status
                 results.append("✅ Gateway connected")
-            } else {
-                results.append("❌ Gateway connection failed")
+            } catch {
+                results.append("❌ Gateway connection failed: \(error.localizedDescription)")
             }
         } else {
             results.append("⚠️ Gateway not configured")
