@@ -68,7 +68,7 @@ struct EntityRow: View {
             updatedAt: nil,
             facts: [
                 Fact(id: 1, entityId: 1, key: "role", value: "Developer", confidence: nil, source: nil, createdAt: nil),
-                Fact(id: 2, entityId: 1, key: "location", value: "Cincinnati", confidence: nil, source: nil, createdAt: nil)
+                Fact(id: 2, entityId: 1, key: "location", value: "San Francisco", confidence: nil, source: nil, createdAt: nil)
             ],
             relationships: nil,
             events: nil,
