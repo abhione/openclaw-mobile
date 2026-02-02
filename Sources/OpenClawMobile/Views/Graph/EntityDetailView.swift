@@ -252,15 +252,15 @@ struct EntityDetailView: View {
         EntityDetailView(entity: Entity(
             id: 1,
             type: "person",
-            name: "Abhi",
-            aliases: "abhirup",
-            summary: "Creator of OpenClaw, an open-source AI agent platform.",
+            name: "Alice",
+            aliases: "alice_dev",
+            summary: "Creator of an open-source AI agent platform.",
             metadata: nil,
             createdAt: nil,
             updatedAt: nil,
             facts: [
                 Fact(id: 1, entityId: 1, key: "role", value: "Developer", confidence: 0.95, source: nil, createdAt: nil),
-                Fact(id: 2, entityId: 1, key: "location", value: "Cincinnati, OH", confidence: nil, source: nil, createdAt: nil)
+                Fact(id: 2, entityId: 1, key: "location", value: "San Francisco, CA", confidence: nil, source: nil, createdAt: nil)
             ],
             relationships: nil,
             events: [
