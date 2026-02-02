@@ -1,0 +1,21 @@
+// swift-tools-version: 6.2
+import PackageDescription
+
+let package = Package(
+    name: "OpenClawMobile",
+    platforms: [
+        .iOS(.v18)
+    ],
+    products: [
+        .library(
+            name: "OpenClawMobile",
+            targets: ["OpenClawMobile"]
+        )
+    ],
+    targets: [
+        .target(
+            name: "OpenClawMobile",
+            path: "Sources/OpenClawMobile"
+        )
+    ]
+)
