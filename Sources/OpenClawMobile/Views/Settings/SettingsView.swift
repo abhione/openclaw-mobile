@@ -70,6 +70,16 @@ struct SettingsView: View {
                         .keyboardType(.URL)
                 }
 
+                if !config.gatewayURL.isEmpty && !config.gatewayURLIsSecure {
+                    HStack(spacing: 4) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.system(size: 11))
+                        Text("Insecure URL — use https:// to protect your token")
+                            .font(AppTheme.captionFont)
+                    }
+                    .foregroundStyle(.orange)
+                }
+
                 Divider()
                     .background(AppTheme.textTertiary.opacity(0.3))
 
@@ -123,6 +133,16 @@ struct SettingsView: View {
                         .autocorrectionDisabled()
                         .textInputAutocapitalization(.never)
                         .keyboardType(.URL)
+                }
+
+                if !config.kgAPIURL.isEmpty && !config.kgURLIsSecure {
+                    HStack(spacing: 4) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.system(size: 11))
+                        Text("Insecure URL — use https:// to protect your token")
+                            .font(AppTheme.captionFont)
+                    }
+                    .foregroundStyle(.orange)
                 }
 
                 Divider()
@@ -293,7 +313,10 @@ struct SettingsView: View {
         // Test Gateway
         if config.isConfigured {
             do {
-                let url = URL(string: config.gatewayURL.trimmingCharacters(in: .init(charactersIn: "/")) + "/api/status")!
+                guard let url = URL(string: config.normalizedGatewayURL + "/api/status") else {
+                    results.append("❌ Gateway URL is invalid")
+                    return
+                }
                 var req = URLRequest(url: url)
                 req.setValue("Bearer \(config.gatewayToken)", forHTTPHeaderField: "Authorization")
                 let (data, _) = try await URLSession.shared.data(for: req)

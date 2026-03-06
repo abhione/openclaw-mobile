@@ -30,19 +30,22 @@ final class GatewayService: ObservableObject {
 
         disconnect()
 
-        // Build WebSocket URL with auth params
-        // OpenClaw WS auth: connect.params.auth.token or connect.params.auth.password
-        var urlString = config.gatewayURL
-            .replacingOccurrences(of: "http://", with: "ws://")
-            .replacingOccurrences(of: "https://", with: "wss://")
-
-        if !urlString.hasPrefix("ws://") && !urlString.hasPrefix("wss://") {
-            urlString = "ws://\(urlString)"
+        // Build WebSocket URL — upgrade to encrypted scheme.
+        // http:// → wss://, https:// → wss://. Plain ws:// is not permitted.
+        var urlString = config.normalizedGatewayURL
+        if urlString.lowercased().hasPrefix("http://") {
+            urlString = "wss://" + urlString.dropFirst("http://".count)
+        } else if urlString.lowercased().hasPrefix("https://") {
+            urlString = "wss://" + urlString.dropFirst("https://".count)
+        } else if urlString.lowercased().hasPrefix("ws://") {
+            // Reject plain WebSocket — tokens would be sent in cleartext
+            error = "Insecure WebSocket (ws://) is not allowed. Use wss:// or https://"
+            return
+        } else if !urlString.lowercased().hasPrefix("wss://") {
+            urlString = "wss://\(urlString)"
         }
 
         // Socket.IO style connection — OpenClaw uses socket.io under the hood
-        // The Control UI connects via socket.io with auth in handshake
-        // For a native client, we use the socket.io transport protocol
         urlString += "/socket.io/?EIO=4&transport=websocket"
 
         guard let url = URL(string: urlString) else {
@@ -50,6 +53,9 @@ final class GatewayService: ObservableObject {
             return
         }
 
+        // TODO: [Backend dependency] Implement SSL certificate pinning once the gateway's
+        // certificate chain is stable. Set a URLSessionDelegate on this session and verify
+        // the server certificate's public-key hash in urlSession(_:didReceive:completionHandler:).
         let session = URLSession(configuration: .default)
         let task = session.webSocketTask(with: url)
         self.urlSession = session
@@ -59,8 +65,13 @@ final class GatewayService: ObservableObject {
         // Send auth after connection
         Task {
             do {
-                // Socket.IO handshake
-                try await sendRaw("40{\"auth\":{\"token\":\"\(config.gatewayToken)\"}}")
+                // Socket.IO handshake — encode the token via JSONSerialization
+                // to prevent injection if the token contains special characters.
+                let authPayload = try JSONSerialization.data(
+                    withJSONObject: ["auth": ["token": config.gatewayToken]]
+                )
+                let authString = String(data: authPayload, encoding: .utf8) ?? "{}"
+                try await sendRaw("40\(authString)")
                 isConnected = true
                 config.gatewayConnected = true
                 startReceiving()
@@ -68,6 +79,9 @@ final class GatewayService: ObservableObject {
                 isConnected = false
                 config.gatewayConnected = false
                 self.error = "Connection failed: \(error.localizedDescription)"
+                // TODO: [Backend dependency] When the gateway issues short-lived JWTs, catch
+                // an auth-failure error code here, trigger a token refresh via the gateway's
+                // refresh endpoint, and retry connect() with the new token.
             }
         }
     }

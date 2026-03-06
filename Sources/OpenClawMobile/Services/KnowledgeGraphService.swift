@@ -129,7 +129,21 @@ final class KnowledgeGraphService: ObservableObject {
     // MARK: - Network Request
 
     private func request(path: String) async throws -> Data {
-        let urlString = config.normalizedKGURL + path
+        let baseURL = config.normalizedKGURL
+
+        // Reject plain HTTP — bearer tokens must not be sent in cleartext.
+        // Allow http:// only when targeting localhost/127.0.0.1 for local dev.
+        let lowerBase = baseURL.lowercased()
+        let isLocalhost = lowerBase.contains("localhost") || lowerBase.contains("127.0.0.1")
+        if lowerBase.hasPrefix("http://") && !isLocalhost {
+            throw NSError(
+                domain: "KnowledgeGraphService",
+                code: URLError.Code.unsupportedURL.rawValue,
+                userInfo: [NSLocalizedDescriptionKey: "Insecure HTTP is not allowed for remote endpoints. Use HTTPS."]
+            )
+        }
+
+        let urlString = baseURL + path
         guard let url = URL(string: urlString) else {
             throw URLError(.badURL)
         }
@@ -140,6 +154,9 @@ final class KnowledgeGraphService: ObservableObject {
         req.setValue("application/json", forHTTPHeaderField: "Content-Type")
         req.timeoutInterval = 30
 
+        // TODO: [Backend dependency] Implement SSL certificate pinning once the KG API's
+        // certificate chain is stable. Create a dedicated URLSession with a delegate that
+        // validates the server's public-key hash, replacing URLSession.shared here.
         let (data, response) = try await URLSession.shared.data(for: req)
 
         guard let httpResponse = response as? HTTPURLResponse else {
